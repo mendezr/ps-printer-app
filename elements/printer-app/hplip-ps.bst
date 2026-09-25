@@ -12,6 +12,7 @@ build-depends:
   - ghostscript-fsdk.bst:printer-app/pyppd.bst
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:public-stacks/buildsystem-autotools.bst
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/sed.bst
+  - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/findutils.bst
 
 depends:
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/cups.bst

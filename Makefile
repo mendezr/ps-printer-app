@@ -40,7 +40,7 @@ ifndef PATCH
 PATCH		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+\d+\D+(\d+).*$$/\1/'`
 endif
 ifndef PACKAGE
-PACKAGE		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+\d+\D+\d+\D+(\d+).*$$/\1/'`
+PACKAGE		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+\d+\D+\d+\D+(\d+).*$$/\1/; s/^\d+\.\d+\.\d+$$/0/'`
 endif
 endif
 ifdef MAJOR

@@ -97,7 +97,7 @@ podman exec "$name" /usr/bin/bash -c \
 
 system_uri="ipp://127.0.0.1:${port}/ipp/system"
 printer_uri="ipp://127.0.0.1:${port}/ipp/print/ps-test"
-podman exec "$name" ps-printer-app -u "$system_uri" -d ps-test -m generic \
+podman exec "$name" ps-printer-app -u "$system_uri" -d ps-test -m generic--postscript-printer--en \
   -v "cups:socket://127.0.0.1:${sink_port}" add
 printer_page="$(curl --fail --silent --show-error --cookie-jar "$cookie_file" \
   "http://127.0.0.1:${port}/ps-test/")"

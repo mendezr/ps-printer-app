@@ -533,6 +533,11 @@ PPD, manufacturer PS PPDs from Foomatic, Debian-patched HPLIP PS PPDs and its
 and the filter dependencies. `snap/snapcraft.yaml` and the upstream Snap build
 remain separate.
 
+FSDK's Foomatic manufacturer PPD sources are `*.ppd.gz`; the builder expands
+them before creating the PostScript-only `pyppd` archive. Both PPD generators
+stage `findutils` explicitly, and the application's three-component version
+uses a zero packaging component in its compiled version tuple.
+
 On native x86_64 or aarch64 with `just`, rootless Podman and FUSE available:
 
 ```sh
@@ -549,6 +554,10 @@ PostScript driver to a socket sink, checks the PostScript output and completed
 job, uploads a normal user PPD, checks independent volumes and process failure,
 then restarts against the same persistent state. The checks use no printer
 hardware: physical USB printing and paper output are **not verified**.
+
+The benign PPD upload smoke is not a security review. Do not publish an OCI
+image exposing the upload form until the upstream PPD trust-boundary review
+is complete; a successful local print cannot establish hostile-PPD safety.
 
 For a local-only rootless instance, bind the published port to loopback. Its
 default port is 18020; `PORT` can override this if the host uses that port:

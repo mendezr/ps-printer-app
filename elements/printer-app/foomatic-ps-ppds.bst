@@ -5,6 +5,8 @@ build-depends:
   - ghostscript-fsdk.bst:printer-app/pyppd.bst
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/foomatic-db.bst
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/sed.bst
+  - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/findutils.bst
+  - ghostscript-fsdk.bst:freedesktop-sdk.bst:components/gzip.bst
   - ghostscript-fsdk.bst:freedesktop-sdk.bst:public-stacks/runtime-gnu.bst
 
 depends:
@@ -17,6 +19,7 @@ config:
       mkdir -p payload
       cp -a /usr/share/foomatic/db/source/PPD/. payload/
       rm -rf payload/*/PDF payload/*/PXL payload/*/PCL5
+      find payload -type f -name '*.ppd.gz' -exec gzip -d '{}' +
       find payload -type f ! -name '*.ppd' -delete
       find payload -type f -name '*.ppd' -exec chmod -x '{}' +
       find payload -type f -name '*.ppd' -exec sed -E -i 's/^\*CloseUI([[:space:]]+)/\*CloseUI:\1/; s/\*1284DeviceId/\*1284DeviceID/g' '{}' +
