@@ -8,12 +8,13 @@
       "description": "PS-only Debian HPLIP stable source; FSDK and its other sources belong to the pinned Ghostscript junction",
       "managerFilePatterns": ["/^elements\\/printer-app\\/hplip-ps\\.bst$/"],
       "matchStrings": [
-        "# renovate: datasource=gitlab-tags depName=printing-team/hplip\\.v2 registryUrl=https://salsa\\.debian\\.org\\s+track:\\s+(?<currentValue>debian/[^\\s]+)"
+        "track: (?<currentValue>debian/[^\\s]+)\\n    ref: debian/[^\\s]+-0-g(?<currentDigest>[0-9a-f]{40})"
       ],
       "datasourceTemplate": "gitlab-tags",
       "depNameTemplate": "printing-team/hplip.v2",
       "registryUrlTemplate": "https://salsa.debian.org",
-      "versioningTemplate": "regex:^debian/(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\+dfsg0-(?<build>\\d+)$"
+      "versioningTemplate": "regex:^debian/(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\+dfsg0-(?<build>\\d+)$",
+      "autoReplaceStringTemplate": "track: {{{newValue}}}\n    ref: {{{newValue}}}-0-g{{{newDigest}}}"
     }
   ],
   "packageRules": [
