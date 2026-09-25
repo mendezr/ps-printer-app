@@ -31,7 +31,7 @@ fetch:
     just bst source fetch --ignore-project-source-remotes --source-remote https://cache.projectbluefin.io:11001 --deps all printer-app/autoadd-test.bst
 
 build:
-    just bst build --ignore-project-source-remotes --source-remote https://cache.projectbluefin.io:11001 oci/ps-printer-app.bst
+    just bst build oci/ps-printer-app.bst
     just export
 
 export:
@@ -47,7 +47,7 @@ verify-cups-patch-chain:
     tests/cups-patch-chain.sh
 
 verify-autoadd:
-    just bst build --ignore-project-source-remotes --source-remote https://cache.projectbluefin.io:11001 printer-app/autoadd-test.bst
+    just bst build printer-app/autoadd-test.bst
 
 verify:
     just validate
