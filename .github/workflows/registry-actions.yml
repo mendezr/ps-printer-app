@@ -16,10 +16,6 @@ on:
           - edge
           - stable
           - both
-  workflow_run:
-    workflows: ["Push new tag update to stable branch"]
-    types:
-      - completed
 
 jobs:
   build-rock:
