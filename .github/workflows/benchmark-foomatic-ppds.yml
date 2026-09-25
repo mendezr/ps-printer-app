@@ -1,0 +1,75 @@
+name: Foomatic PPD build benchmark
+
+on:
+  pull_request:
+    branches: [testing]
+    paths:
+      - scripts/benchmark_foomatic_ppds.py
+      - tests/test_benchmark_foomatic_ppds.py
+      - docs/foomatic-ppd-benchmark.md
+      - elements/printer-app/foomatic-ps-ppds.bst
+      - elements/printer-app/pyppd.bst
+      - .github/workflows/benchmark-foomatic-ppds.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foomatic-ppd-benchmark-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  benchmark:
+    name: PPD benchmark (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install benchmark dependencies
+        run: sudo apt-get update && sudo apt-get install --yes gzip perl xz-utils
+      - name: Fetch immutable Foomatic and pyppd sources
+        # foomatic-db: the commit freedesktop-sdk 26.08.1 builds
+        # (components/foomatic-db.bst). pyppd: elements/printer-app/pyppd.bst.
+        env:
+          FOOMATIC_COMMIT: 76dd1e31354c189b2edd9ae8201285d622c89395
+          PYPPD_COMMIT: 29ccf6cf85781315a696774e7458a2f1f61aac57
+        run: |
+          set -euo pipefail
+          fetch_commit() {
+            local repository="$1" commit="$2" destination="$3"
+            git init --quiet "$destination"
+            git -C "$destination" remote add origin "$repository"
+            git -C "$destination" fetch --quiet --depth=1 origin "$commit"
+            git -C "$destination" checkout --quiet --detach FETCH_HEAD
+            test "$(git -C "$destination" rev-parse HEAD)" = "$commit"
+          }
+          fetch_commit https://github.com/OpenPrinting/foomatic-db.git "$FOOMATIC_COMMIT" "$RUNNER_TEMP/foomatic-db"
+          fetch_commit https://github.com/OpenPrinting/pyppd.git "$PYPPD_COMMIT" "$RUNNER_TEMP/pyppd"
+      - name: Test benchmark pipeline helpers
+        run: python3 -m unittest discover -s tests -p 'test_benchmark_foomatic_ppds.py'
+      - name: Measure native PPD processing and archive size
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/foomatic-ppd-${{ matrix.arch }}.json"
+          python3 scripts/benchmark_foomatic_ppds.py \
+            "$RUNNER_TEMP/foomatic-db" "$RUNNER_TEMP/pyppd" "$report"
+          cat "${report%.json}.md" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo '<details><summary>Raw benchmark JSON</summary>'
+            echo
+            echo '```json'
+            cat "$report"
+            echo '```'
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
