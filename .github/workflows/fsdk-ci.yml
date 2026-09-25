@@ -20,6 +20,8 @@ on:
       - 'Makefile'
   pull_request:
     branches: [testing]
+  merge_group:
+    branches: [testing]
     paths:
       - '.github/workflows/fsdk-ci.yml'
       - 'project.conf'
@@ -76,7 +78,6 @@ jobs:
   build-fsdk:
     name: FSDK (${{ matrix.arch }})
     needs: prerequisites
-    if: needs.prerequisites.outputs.available == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -91,14 +92,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Report bootstrap status
+        if: needs.prerequisites.outputs.available != 'true'
+        run: |
+          echo "FSDK image build skipped: bootstrap prerequisites pending."
       - uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2
+        if: needs.prerequisites.outputs.available == 'true'
         with:
           tool: just
       - name: Install host dependencies
+        if: needs.prerequisites.outputs.available == 'true'
         run: sudo apt-get update && sudo apt-get install --yes fuse3 podman
       - name: Fetch sources with retries
+        if: needs.prerequisites.outputs.available == 'true'
         run: just fetch
       - name: Build the full FSDK image
+        if: needs.prerequisites.outputs.available == 'true'
         run: just build
       - name: Verify the appliance and real print-to-socket output
+        if: needs.prerequisites.outputs.available == 'true'
         run: just verify
