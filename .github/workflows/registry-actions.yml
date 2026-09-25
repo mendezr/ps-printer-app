@@ -29,6 +29,14 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Require upstream PPD upload security sign-off
+        env:
+          PPD_UPLOAD_SECURITY_APPROVED: ${{ vars.PPD_UPLOAD_SECURITY_APPROVED }}
+        run: |
+          if [[ "$PPD_UPLOAD_SECURITY_APPROVED" != true ]]; then
+            printf '%s\n' 'Public PS image release is blocked until upstream PPD upload security sign-off.' >&2
+            exit 1
+          fi
       - name: Validate stable HEAD, version and pinned upstream FSDK
         id: release
         env:
