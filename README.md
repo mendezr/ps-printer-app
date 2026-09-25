@@ -559,9 +559,12 @@ The benign PPD upload smoke is not a security review. Do not publish an OCI
 image exposing the upload form until the upstream PPD trust-boundary review
 is complete; a successful local print cannot establish hostile-PPD safety.
 
-Only after that sign-off should a maintainer set the repository Actions variable
-`PPD_UPLOAD_SECURITY_APPROVED=true`. Without it, the tag workflow stops before
-building or publishing a public image.
+An active repository ruleset blocks creation of `v*` tags, including against
+the older `stable` branch whose release workflow predates this gate. After
+upstream sign-off, first promote the guarded workflow to `testing` and `stable`,
+then have a maintainer set `PPD_UPLOAD_SECURITY_APPROVED=true` as a repository
+Actions variable, and only then lift the tag-creation hold. Without that
+variable, the guarded workflow stops before building or publishing an image.
 
 For a local-only rootless instance, bind the published port to loopback. Its
 default port is 18020; `PORT` can override this if the host uses that port:
