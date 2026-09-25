@@ -1,2 +1,5 @@
 *.rock
 .DS_Store
+.bst/
+.build-out/
+ps-printer-app.spdx.json

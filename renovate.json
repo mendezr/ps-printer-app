@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "PS-only Debian HPLIP stable source; FSDK and its other sources belong to the pinned Ghostscript junction",
+      "managerFilePatterns": ["/^elements\\/printer-app\\/hplip-ps\\.bst$/"],
+      "matchStrings": [
+        "# renovate: datasource=gitlab-tags depName=printing-team/hplip\\.v2 registryUrl=https://salsa\\.debian\\.org\\s+track:\\s+(?<currentValue>debian/[^\\s]+)"
+      ],
+      "datasourceTemplate": "gitlab-tags",
+      "depNameTemplate": "printing-team/hplip.v2",
+      "registryUrlTemplate": "https://salsa.debian.org",
+      "versioningTemplate": "regex:^debian/(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\+dfsg0-(?<build>\\d+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "automerge": false,
+      "labels": ["dependencies", "buildstream"]
+    }
+  ]
+}

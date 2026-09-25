@@ -1,0 +1,75 @@
+name: Refresh PS-only BuildStream source refs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [testing]
+    paths:
+      - elements/printer-app/hplip-ps.bst
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ps-source-ref-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: >-
+      github.event.pull_request.user.login == 'mergeraptor[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2
+        with:
+          tool: just
+      - name: Install native builder dependencies
+        run: sudo apt-get update && sudo apt-get install --yes fuse3 podman
+      - name: Refresh and prove HPLIP source pin
+        run: |
+          set -euo pipefail
+          just bst source track printer-app/hplip-ps.bst
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          element = Path('elements/printer-app/hplip-ps.bst').read_text()
+          track = re.search(r'^    track: (debian/[^\s]+)$', element, re.M)
+          ref = re.search(r'^    ref: (debian/[^\s]+)-0-g([0-9a-f]{40})$', element, re.M)
+          assert track and ref and track.group(1) == ref.group(1)
+          PY
+          just fetch
+          just verify
+      - name: Mint bot write token after source and print checks
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MERGERAPTOR_APP_ID }}
+          private-key: ${{ secrets.MERGERAPTOR_PRIVATE_KEY }}
+      - name: Update the same reviewed Renovate PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- elements/printer-app/hplip-ps.bst; then
+            echo 'Source ref already locked to the tracked release.'
+            exit 0
+          fi
+          git config user.name 'mergeraptor[bot]'
+          git config user.email '267480593+mergeraptor[bot]@users.noreply.github.com'
+          git add elements/printer-app/hplip-ps.bst
+          git commit -m 'chore(deps): lock PS HPLIP source ref'
+          basic="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$basic"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $basic" \
+            push origin "HEAD:refs/heads/$BRANCH" \
+            --force-with-lease="refs/heads/$BRANCH:$EXPECTED_HEAD"

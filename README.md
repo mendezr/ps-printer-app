@@ -521,6 +521,72 @@ Apple Raster, PWG Raster):
 TESTPAGE=/path/to/my/testpage/my_testpage.ps PPD_PATHS=/path/to/my/ppds:/my/second/place ./ps-printer-app server
 ```
 
+## FSDK OCI PRINTER APPLICATION
+
+The BuildStream path builds this repository's `ps-printer-app.c` against the
+immutable Ghostscript project junction in `elements/ghostscript-fsdk.bst`.
+That junction owns the patched freedesktop-sdk CUPS artifact, PAPPL and
+pappl-retrofit; this project does not build a second CUPS or import the
+Ghostscript-specific appliance stack. The OCI image includes the generic PS
+PPD, manufacturer PS PPDs from Foomatic, Debian-patched HPLIP PS PPDs and its
+`hpps` filter, the CUPS network/USB backends, Ghostscript PDF-to-PS conversion,
+and the filter dependencies. `snap/snapcraft.yaml` and the upstream Snap build
+remain separate.
+
+On native x86_64 or aarch64 with `just`, rootless Podman and FUSE available:
+
+```sh
+just validate
+just fetch
+just verify
+```
+
+`just verify` checks the single patched FSDK CUPS source owner, rejects an
+unmatched synthetic device through the real PAPPL retrofit matcher, builds and
+exports `ghcr.io/projectbluefin/ps-printer-app:build` locally, starts the real
+application over HTTP and HTTPS, submits an IPP test page through the generic
+PostScript driver to a socket sink, checks the PostScript output and completed
+job, uploads a normal user PPD, checks independent volumes and process failure,
+then restarts against the same persistent state. The checks use no printer
+hardware: physical USB printing and paper output are **not verified**.
+
+For a local-only rootless instance, bind the published port to loopback. Its
+default port is 18020; `PORT` can override this if the host uses that port:
+
+```sh
+mkdir -p ps-state
+podman unshare chown 65532:65532 ps-state
+podman run --rm --name ps-printer-app --publish 127.0.0.1:18180:18180 \
+  -e PORT=18180 \
+  -v "$PWD/ps-state:/var/lib/ps-printer-app:Z" \
+  ghcr.io/projectbluefin/ps-printer-app:build
+```
+
+PAPPL's settings, print jobs, SNMP configuration and user-uploaded PPDs live
+under `/var/lib/ps-printer-app`, with uploads in its `ppd/` directory. Never
+share that volume with another Printer Application. Its advertised service and
+port belong to the PS instance; when several applications can discover the
+same device, assign that physical printer to only one application and confirm
+distinct IPP service advertisements on the LAN. For real USB access, the
+rootless account must have device permissions on the host, and the container
+needs only the printer's specific `--device=/dev/bus/usb/<bus>/<device>` plus
+`--group-add keep-groups` where supported; do not grant broad privileged
+container access. Network socket printing in CI does not establish that any
+model prints correctly on physical hardware.
+
+CUPS USB defaults are copied from `/usr/share/cups/usb/` into the persistent
+`usb/` directory on first boot; existing user quirk edits are never replaced.
+
+Pull requests into `testing` run native amd64 and arm64 FSDK verification
+without registry credentials. The manual promotion workflow re-verifies both
+architectures and fast-forwards `stable` only from the verified `testing` HEAD.
+A `v<VERSION>` tag on the `stable` HEAD publishes one immutable GHCR
+amd64+arm64 index, with a signed SPDX SBOM, signature and provenance; no
+mutable `latest`, `edge`, or `stable` image tags are produced. Renovate owns
+only this repository's HPLIP stable tag; the refreshed immutable digest and
+complete image print check must land in the same reviewed PR. Changes to the
+Ghostscript/FSDK junction require their own reviewed pinned-input update.
+
 ## LEGAL STUFF
 
 The PostScript Printer Application is Copyright © 2020 by Till Kamppeter.

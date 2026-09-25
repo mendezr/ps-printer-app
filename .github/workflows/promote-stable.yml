@@ -1,0 +1,69 @@
+name: Promote verified testing commit to stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      testing_sha:
+        description: Exact testing commit to rebuild and promote
+        required: true
+        type: string
+
+permissions: {}
+concurrency:
+  group: ps-printer-app-stable-promotion
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.testing_sha }}
+          persist-credentials: false
+      - uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2
+        with:
+          tool: just
+      - name: Install host dependencies
+        run: sudo apt-get update && sudo apt-get install --yes fuse3 podman
+      - name: Fetch and verify actual printer image
+        run: just fetch && just verify
+
+  promote:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.testing_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fast-forward stable only from verified testing HEAD
+        env:
+          CANDIDATE: ${{ inputs.testing_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$(git rev-parse HEAD)" == "$CANDIDATE" ]]
+          git fetch origin testing stable
+          [[ "$(git rev-parse origin/testing)" == "$CANDIDATE" ]]
+          git merge-base --is-ancestor origin/stable "$CANDIDATE"
+          basic="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$basic"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $basic" \
+            push origin "$CANDIDATE:refs/heads/stable"

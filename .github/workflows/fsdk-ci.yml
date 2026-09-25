@@ -1,0 +1,77 @@
+name: FSDK OCI validation
+
+on:
+  push:
+    branches: [testing]
+    paths:
+      - .github/workflows/fsdk-ci.yml
+      - .github/workflows/registry-actions.yml
+      - .github/workflows/promote-stable.yml
+      - .github/workflows/refresh-bst-refs.yml
+      - Justfile
+      - VERSION
+      - project.conf
+      - elements/**
+      - files/**
+      - tests/**
+      - Makefile
+      - ps-printer-app.c
+      - generic-ps-printer.ppd
+      - testpage.ps
+      - ps-printer-app.1
+      - ps-printer-app.service
+  pull_request:
+    branches: [testing]
+    paths:
+      - .github/workflows/fsdk-ci.yml
+      - .github/workflows/registry-actions.yml
+      - .github/workflows/promote-stable.yml
+      - .github/workflows/refresh-bst-refs.yml
+      - Justfile
+      - VERSION
+      - project.conf
+      - elements/**
+      - files/**
+      - tests/**
+      - Makefile
+      - ps-printer-app.c
+      - generic-ps-printer.ppd
+      - testpage.ps
+      - ps-printer-app.1
+      - ps-printer-app.service
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  build-fsdk:
+    name: FSDK (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@d438492cf8a250514fa2d34b30bc3c0dc37c65ff # v2
+        with:
+          tool: just
+      - name: Install host dependencies
+        run: sudo apt-get update && sudo apt-get install --yes fuse3 podman
+      - name: Fetch pinned sources
+        run: just fetch
+      - name: Verify real FSDK image and print-to-socket output
+        run: just verify

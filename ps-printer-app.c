@@ -86,7 +86,7 @@ ps_autoadd(const char *device_info,	// I - Device name (unused)
   {
     // Printer supports PostScript, so find the best-matching PPD file
     ret = prBestMatchingPPD(device_id, global_data);
-    if (strcmp(ret, "generic") == 0 && !prSupportsPostScript(device_id))
+    if (ret && strcmp(ret, "generic") == 0 && !prSupportsPostScript(device_id))
       ret = NULL;
   }
   else
