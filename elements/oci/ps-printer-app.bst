@@ -26,6 +26,10 @@ config:
         'nonroot:x:65532:' \
         >> /layer/etc/group
       rm -rf /layer/run/dbus /layer/run/avahi-daemon /layer/run/ps-printer-app
+      # Avahi's sample remote-login records do not describe this appliance.
+      # Keep the shared base's avahi-printing element and PAPPL's dynamic IPP publication.
+      rm -f /layer/etc/avahi/services/ssh.service \
+        /layer/etc/avahi/services/sftp-ssh.service
       rm -rf /layer/usr/lib/debug /layer/usr/share/cups/ipptool
       rm -f /layer/usr/bin/cupsd /layer/usr/bin/ippeveprinter
       # cups-filters' own PDF and PCL-XL PPDs are outside this PostScript-only

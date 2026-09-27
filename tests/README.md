@@ -100,6 +100,23 @@ from another host and USB access are not verified (see
 `IMAGE`, `PORT` (default 18080; `PORT`..`PORT+2` are used) and `NAME_PREFIX`
 (container names, default `ps-printer-app-inst`) select the image, ports and names.
 
+## Service advertisements
+
+`service-advertisements.sh` verifies that the built image contains neither of
+Avahi's sample remote-login service files, then observes DNS-SD from the host
+network before and after starting two named instances with distinct ports and
+state volumes. Each instance adds its own generic PostScript IPP queue. The test
+requires the queues to resolve as `_ipp._tcp` on their respective ports, compares
+existing `_ssh._tcp` and `_sftp-ssh._tcp` records before and after startup, then
+repeats those checks after restarting one instance. It does not claim physical
+printer discovery or paper output.
+
+Run it with `just verify-service-advertisements` after building the image; it
+requires Podman, `avahi-browse`, and an Avahi daemon running on the host. Run it
+on an otherwise quiet test network so unrelated remote-login services do not
+change between snapshots. `just verify` also runs the image-only
+`check-no-remote-login-records` recipe, which needs no host-network observation.
+
 ## The manifest
 
 `payload-manifest.txt` is the list of driver, filter, backend, interpreter and PPD
