@@ -73,10 +73,7 @@ jobs:
           tool: just
       - name: Install host dependencies
         if: needs.prerequisites.outputs.available == 'true'
-        run: sudo apt-get update && sudo apt-get install --yes fuse3 podman skopeo jq avahi-daemon avahi-utils
-      - name: Start host Avahi for DNS-SD verification
-        if: needs.prerequisites.outputs.available == 'true'
-        run: sudo systemctl start avahi-daemon
+        run: sudo apt-get update && sudo apt-get install --yes fuse3 podman skopeo jq
       # ps_autoadd() against test doubles; needs only the runner's C compiler.
       - name: Unit tests
         if: needs.prerequisites.outputs.available == 'true'

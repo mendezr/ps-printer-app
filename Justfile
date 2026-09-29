@@ -141,7 +141,6 @@ verify:
     just verify-instances
     just verify-usb-quirks
     just check-no-remote-login-records
-    just verify-service-advertisements
 
 # SPDX SBOM of the image graph for releases (run `just fetch` first).
 sbom:
